@@ -1,3 +1,16 @@
 <resources>
-    <string name="app_name">My Application</string>
+    <string name="app_name">Передача времени приёма лекарств</string>
+    <string name="status_connected">Подключено</string>
+    <string name="status_disconnected">Не подключено</string>
+    <string name="select_device">Выбрать устройство</string>
+    <string name="date_label">Дата:</string>
+    <string name="time_label">Время:</string>
+    <string name="ok_button">ОК</string>
+    <string name="history_label">История отправок:</string>
+    <string name="edit">Редактировать</string>
+    <string name="delete">Удалить</string>
+    <string name="bluetooth_disabled">Bluetooth выключен. Включите Bluetooth для использования приложения.</string>
+    <string name="no_connection">Нет подключения к устройству. Выберите устройство для отправки данных.</string>
+    <string name="send_success">Данные успешно отправлены</string>
+    <string name="send_error">Ошибка отправки данных</string>
 </resources>
