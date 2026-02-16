@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var repository: MedicineRepository
     private lateinit var viewModel: MainViewModel
-
     private lateinit var connectionStatusText: TextView
     private lateinit var connectButton: Button
     private lateinit var datePicker: DatePicker

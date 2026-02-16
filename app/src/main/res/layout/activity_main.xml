@@ -43,17 +43,19 @@
         app:layout_constraintTop_toBottomOf="@id/connectionStatusText" />
 
     <!-- Разделитель -->
+
+    <!-- Выбор даты -->
     <View
         android:id="@+id/divider1"
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="4dp"
         android:background="?attr/colorControlNormal"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/connectButton" />
 
-    <!-- Выбор даты -->
     <TextView
         android:id="@+id/dateLabel"
         android:layout_width="wrap_content"
@@ -65,18 +67,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/divider1" />
 
+    <!-- Выбор времени -->
+
     <DatePicker
         android:id="@+id/datePicker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_width="256dp"
+        android:layout_height="205dp"
+        android:layout_marginTop="16dp"
         android:calendarViewShown="false"
         android:datePickerMode="spinner"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.504"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/dateLabel" />
 
-    <!-- Выбор времени -->
     <TextView
         android:id="@+id/timeLabel"
         android:layout_width="wrap_content"
@@ -88,28 +92,33 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/datePicker" />
 
+    <!-- Кнопка ОК -->
+
+    <!-- Разделитель -->
+
     <TimePicker
         android:id="@+id/timePicker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_width="251dp"
+        android:layout_height="187dp"
+        android:layout_marginTop="12dp"
         android:timePickerMode="spinner"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.504"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/timeLabel" />
 
-    <!-- Кнопка ОК -->
     <Button
         android:id="@+id/sendButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_width="295dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="4dp"
         android:text="ОК"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/timePicker" />
+        app:layout_constraintTop_toBottomOf="@id/timePicker"
+        app:layout_constraintVertical_bias="0.0" />
 
-    <!-- Разделитель -->
     <View
         android:id="@+id/divider2"
         android:layout_width="0dp"
@@ -121,10 +130,12 @@
         app:layout_constraintTop_toBottomOf="@id/sendButton" />
 
     <!-- Заголовок истории -->
+
+    <!-- RecyclerView для истории -->
     <TextView
         android:id="@+id/historyLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="191dp"
+        android:layout_height="96dp"
         android:layout_marginTop="16dp"
         android:text="История отправок:"
         android:textSize="16sp"
@@ -132,7 +143,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/divider2" />
 
-    <!-- RecyclerView для истории -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/historyRecyclerView"
         android:layout_width="0dp"
