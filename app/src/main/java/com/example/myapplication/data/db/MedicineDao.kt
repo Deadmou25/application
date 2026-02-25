@@ -18,6 +18,9 @@ interface MedicineDao {
     
     @Delete
     suspend fun delete(medicine: Medicine)
+
+    @Query("DELETE FROM medicines")
+    suspend fun deleteAll();
     
     @Query("DELETE FROM medicines WHERE id = :id")
     suspend fun deleteById(id: Long)

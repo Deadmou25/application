@@ -1,7 +1,6 @@
 package com.example.myapplication.data
 
 import com.example.myapplication.bluetoot.BluetoothManager
-import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MedicineDao
 import com.example.myapplication.data.model.Medicine
 import kotlinx.coroutines.flow.Flow
@@ -23,20 +22,20 @@ class MedicineRepository(
      * @param dateTime Строка в формате "YYYY-MM-DD HH:MM"
      * @return Результат операции (true если успешно)
      */
-    suspend fun sendMedicineTime(dateTime: String): Boolean {
+    suspend fun sendMedicineTime(eventDateTime: String, sendDateTime: String): Boolean {
         // Проверяем подключение
         if (!bluetoothManager.isConnected()) {
             return false
         }
-        
-        // Отправляем данные
-        val success = bluetoothManager.sendData(dateTime)
+
+        val dataToSend = "$eventDateTime;$sendDateTime"
+        val success = bluetoothManager.sendData(dataToSend)
         
         // Сохраняем в базу данных
         if (success) {
             val medicine = Medicine(
-                dateTime = dateTime,
-                sentAt = System.currentTimeMillis(),
+                dateTime = eventDateTime,      // Время приёма лекарства
+                sentAt = System.currentTimeMillis(), // Время отправки (timestamp)
                 deviceName = bluetoothManager.getConnectedDeviceName()
             )
             medicineDao.insert(medicine)
@@ -57,6 +56,13 @@ class MedicineRepository(
      */
     suspend fun deleteMedicine(medicine: Medicine) {
         medicineDao.delete(medicine)
+    }
+
+    /*
+        Удалить все записи из бд
+     */
+    suspend fun deleteAllMedicines() {
+        medicineDao.deleteAll();
     }
     
     /**

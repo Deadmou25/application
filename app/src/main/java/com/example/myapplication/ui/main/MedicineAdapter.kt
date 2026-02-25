@@ -10,9 +10,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
 import com.example.myapplication.data.model.Medicine
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class MedicineAdapter(
     private val onEditClick: (Medicine) -> Unit,
@@ -22,14 +19,21 @@ class MedicineAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MedicineViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_medicine, parent, false)
-        return MedicineViewHolder(view)
+        return MedicineViewHolder(view, onEditClick, onDeleteClick)
     }
 
     override fun onBindViewHolder(holder: MedicineViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        // Получаем элемент безопасно
+        val item = getItem(position)
+        holder.bind(item)
     }
 
-    inner class MedicineViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class MedicineViewHolder(
+        itemView: View,
+        private val onEditClick: (Medicine) -> Unit,
+        private val onDeleteClick: (Medicine) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
+
         private val dateTimeText: TextView = itemView.findViewById(R.id.dateTimeText)
         private val deviceNameText: TextView = itemView.findViewById(R.id.deviceNameText)
         private val sentAtText: TextView = itemView.findViewById(R.id.sentAtText)
@@ -37,26 +41,16 @@ class MedicineAdapter(
         private val deleteButton: Button = itemView.findViewById(R.id.deleteButton)
 
         fun bind(medicine: Medicine) {
+            // Защита от null значений
             dateTimeText.text = medicine.dateTime
+            deviceNameText.text = "Устройство: ${medicine.deviceName ?: "Неизвестно"}"
+            val sentDate =
+                java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+                    .format(java.util.Date(medicine.sentAt))
+            sentAtText.text = "Отправлено: $sentDate"
 
-            deviceNameText.text = if (medicine.deviceName != null) {
-                "Устройство: ${medicine.deviceName}"
-            } else {
-                "Устройство: Неизвестно"
-            }
-
-            // Форматируем timestamp отправки
-            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
-            val sentAtFormatted = dateFormat.format(Date(medicine.sentAt))
-            sentAtText.text = "Отправлено: $sentAtFormatted"
-
-            editButton.setOnClickListener {
-                onEditClick(medicine)
-            }
-
-            deleteButton.setOnClickListener {
-                onDeleteClick(medicine)
-            }
+            editButton.setOnClickListener { onEditClick(medicine) }
+            deleteButton.setOnClickListener { onDeleteClick(medicine) }
         }
     }
 
