@@ -41,7 +41,13 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.version.outputs.VERSION_NAME }}
           VERSION_CODE: ${{ steps.version.outputs.VERSION_CODE }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon 2>&1 | tee /tmp/gradle.log || {
+            grep -E "(> Task|FAILED|error:|Error:|Exception|Caused by:)" /tmp/gradle.log | tail -30 | \
+              while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          }
 
       - name: Show build outputs
         if: always()
