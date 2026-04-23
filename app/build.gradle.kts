@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.myapplication"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     // Версия берётся из переменных окружения при сборке в CI (GitHub Actions).
     // При локальной сборке используются значения по умолчанию.

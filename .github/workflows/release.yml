@@ -41,7 +41,7 @@ jobs:
         env:
           VERSION_NAME: ${{ steps.version.outputs.VERSION_NAME }}
           VERSION_CODE: ${{ steps.version.outputs.VERSION_CODE }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log; grep -E "^(FAILURE|error:|> Task|Caused by)" build.log | tail -40 >> $GITHUB_STEP_SUMMARY || true
 
       - name: Rename APK
         run: |
