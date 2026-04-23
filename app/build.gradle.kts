@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt") // <- добавляем этот плагин
+    id("kotlin-kapt")
 }
 
 android {
@@ -11,14 +11,34 @@ android {
         version = release(36)
     }
 
+    // Версия берётся из переменных окружения при сборке в CI (GitHub Actions).
+    // При локальной сборке используются значения по умолчанию.
+    val ciVersionName = System.getenv("VERSION_NAME")
+    val ciVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
+
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = ciVersionCode ?: 1
+        versionName = ciVersionName ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Конфигурация подписи для release-сборки.
+    // Данные читаются из переменных окружения, которые GitHub Actions
+    // передаёт из секретов репозитория (Settings → Secrets → Actions).
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+            if (!keystorePath.isNullOrEmpty()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -28,8 +48,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Используем release-подпись если keystore задан, иначе — debug-ключ.
+            // Debug-ключ позволяет установить APK на телефон, но не годится для Google Play.
+            val hasKeystore = !System.getenv("KEYSTORE_FILE").isNullOrEmpty()
+            signingConfig = if (hasKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

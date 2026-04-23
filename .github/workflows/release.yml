@@ -1,0 +1,107 @@
+name: Сборка и публикация релиза
+
+# Запускается когда в репозиторий пушится тег вида v1.0.0, v1.2.3 и т.д.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Разрешение на создание релиза и загрузку файлов
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Сборка APK и создание релиза
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем репозиторий
+      - name: Checkout кода
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # нужно для подсчёта коммитов (versionCode)
+
+      # 2. Устанавливаем JDK 17 (минимальная версия для AGP 8+)
+      - name: Настройка JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # 3. Даём права на запуск скрипта сборки
+      - name: Права на gradlew
+        run: chmod +x gradlew
+
+      # 4. Извлекаем номер версии из тега (v1.2.3 → 1.2.3)
+      #    и считаем количество коммитов для versionCode
+      - name: Извлечение версии из тега
+        id: version
+        run: |
+          VERSION_NAME="${GITHUB_REF#refs/tags/v}"
+          VERSION_CODE=$(git rev-list --count HEAD)
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "APK_NAME=medicine-tracker-v${VERSION_NAME}.apk" >> $GITHUB_OUTPUT
+          echo "Версия: $VERSION_NAME (код: $VERSION_CODE)"
+
+      # 5. Декодируем keystore из секрета (base64 → файл)
+      #    Если секрет KEYSTORE_BASE64 не задан — шаг пропускается,
+      #    APK будет подписан debug-ключом
+      - name: Декодирование keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
+          echo "Keystore декодирован: $(ls -lh keystore.jks)"
+
+      # 6. Собираем Release APK
+      - name: Сборка Release APK
+        env:
+          # Версия из тега
+          VERSION_NAME: ${{ steps.version.outputs.VERSION_NAME }}
+          VERSION_CODE: ${{ steps.version.outputs.VERSION_CODE }}
+          # Данные для подписи (из секретов репозитория)
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_BASE64 != '' && format('{0}/keystore.jks', github.workspace) || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      # 7. Переименовываем APK: app-release.apk → medicine-tracker-v1.2.3.apk
+      - name: Переименование APK
+        run: |
+          APK_PATH="app/build/outputs/apk/release"
+          # Ищем собранный файл (может быть app-release.apk или app-release-unsigned.apk)
+          BUILT_APK=$(ls ${APK_PATH}/app-release*.apk | head -1)
+          mv "$BUILT_APK" "${APK_PATH}/${{ steps.version.outputs.APK_NAME }}"
+          echo "APK готов: ${APK_PATH}/${{ steps.version.outputs.APK_NAME }}"
+          ls -lh "${APK_PATH}/"
+
+      # 8. Создаём GitHub Release и прикрепляем APK
+      - name: Создание GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Версия ${{ steps.version.outputs.VERSION_NAME }}"
+          tag_name: ${{ github.ref_name }}
+          files: app/build/outputs/apk/release/${{ steps.version.outputs.APK_NAME }}
+          # Автоматически генерирует список изменений из коммитов
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          body: |
+            ## Передача времени приёма лекарств — v${{ steps.version.outputs.VERSION_NAME }}
+
+            ### Установка
+            1. Скачайте файл `${{ steps.version.outputs.APK_NAME }}`
+            2. Разрешите установку из неизвестных источников в настройках телефона
+            3. Откройте скачанный файл и установите приложение
+
+            ### Требования
+            - Android 7.0 (API 24) и выше
+            - Bluetooth-модуль на телефоне
+            - Arduino с HC-05 или HC-06
+
+            ---
+            **versionCode:** ${{ steps.version.outputs.VERSION_CODE }}
+            **versionName:** ${{ steps.version.outputs.VERSION_NAME }}
