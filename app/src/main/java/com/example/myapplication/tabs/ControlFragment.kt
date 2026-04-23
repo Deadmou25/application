@@ -18,6 +18,21 @@ import com.example.myapplication.bluetoot.BluetoothManager
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+/**
+ * Фрагмент вкладки «Управление».
+ *
+ * Отвечает за:
+ * - Отображение текущего статуса Bluetooth-соединения
+ * - Предоставление пользователю элементов выбора даты ([DatePicker])
+ *   и времени ([TimePicker])
+ * - Отправку выбранных данных на Arduino при нажатии кнопки «ОК»
+ *
+ * Взаимодействие с MainActivity:
+ * - Получает [BluetoothManager] через каст `requireActivity() as MainActivity`
+ * - Делегирует открытие диалога Bluetooth через [MainActivity.startBluetoothConnectionFlow]
+ *
+ * Состояние соединения отслеживается через [MainViewModel.isConnected].
+ */
 class ControlFragment : Fragment() {
 
     private lateinit var viewModel: MainViewModel
@@ -39,10 +54,10 @@ class ControlFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Получаем ViewModel и BluetoothManager из Activity
+        // ViewModel разделяется с MainActivity — оба работают с одним экземпляром
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
-        // Предполагается, что в MainActivity есть публичный доступ к bluetoothManager или метод для его получения
-        // Для простоты, давайте предположим, что MainActivity реализует интерфейс или мы кастуем контекст
+
+        // Получаем BluetoothManager из хост-Activity для прямой проверки статуса
         val activity = requireActivity() as MainActivity
         bluetoothManager = activity.bluetoothManager
 
@@ -60,8 +75,8 @@ class ControlFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+        // Делегируем полный флоу подключения в MainActivity
         connectButton.setOnClickListener {
-            // Делегируем обработку Bluetooth диалогов MainActivity
             (requireActivity() as MainActivity).startBluetoothConnectionFlow()
         }
 
@@ -70,20 +85,26 @@ class ControlFragment : Fragment() {
         }
     }
 
+    /**
+     * Подписывается на StateFlow из ViewModel для реактивного обновления UI.
+     * Сообщения об ошибках отображаются Toast и сбрасываются через clearMessages().
+     */
     private fun setupObservers() {
+        // Обновляем индикатор статуса при изменении флага соединения
         lifecycleScope.launch {
             viewModel.isConnected.collectLatest { isConnected ->
                 updateConnectionStatus(isConnected)
             }
         }
 
+        // Обновляем статус при изменении имени устройства (например, после подключения)
         lifecycleScope.launch {
             viewModel.connectedDeviceName.collectLatest { _ ->
                 updateConnectionStatus(viewModel.isConnected.value)
             }
         }
 
-        // Ошибки и успех можно показывать и здесь, или оставить в Activity
+        // Показываем ошибки из ViewModel через Toast
         lifecycleScope.launch {
             viewModel.errorMessage.collectLatest { message ->
                 message?.let {
@@ -94,6 +115,12 @@ class ControlFragment : Fragment() {
         }
     }
 
+    /**
+     * Обновляет текст и цвет индикатора статуса соединения.
+     * Зелёный — подключено, красный — нет соединения.
+     *
+     * @param isConnected true — Bluetooth-соединение активно
+     */
     private fun updateConnectionStatus(isConnected: Boolean) {
         if (isConnected) {
             val deviceName = viewModel.connectedDeviceName.value
@@ -113,19 +140,23 @@ class ControlFragment : Fragment() {
         }
     }
 
+    /**
+     * Обрабатывает нажатие кнопки «ОК (Отправить)».
+     * Перед отправкой проверяет: включён ли BT и есть ли активное соединение.
+     * Читает значения из DatePicker и TimePicker и делегирует отправку в ViewModel.
+     */
     private fun handleSendButtonClick() {
         if (!bluetoothManager.isBluetoothEnabled()) {
             Toast.makeText(requireContext(), "Bluetooth выключен.", Toast.LENGTH_LONG).show()
             return
         }
         if (!bluetoothManager.isConnected()) {
-            Toast.makeText(requireContext(), "Нет подключения к устройству.", Toast.LENGTH_LONG)
-                .show()
+            Toast.makeText(requireContext(), "Нет подключения к устройству.", Toast.LENGTH_LONG).show()
             return
         }
 
         val year = datePicker.year
-        val month = datePicker.month
+        val month = datePicker.month   // 0-based: январь = 0, декабрь = 11
         val day = datePicker.dayOfMonth
         val hour = timePicker.hour
         val minute = timePicker.minute
