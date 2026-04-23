@@ -28,6 +28,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Install Android SDK 36
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
       - name: Get version from tag
         id: version
         run: |
@@ -44,17 +49,9 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew assembleRelease --no-daemon 2>&1 | tee /tmp/gradle.log || {
-            grep -E "(> Task|FAILED|error:|Error:|Exception|Caused by:)" /tmp/gradle.log | tail -30 | \
-              while IFS= read -r line; do echo "::error::${line}"; done
+            tail -60 /tmp/gradle.log | while IFS= read -r line; do echo "::notice::${line}"; done
             exit 1
           }
-
-      - name: Show build outputs
-        if: always()
-        run: |
-          echo "### APK files" >> $GITHUB_STEP_SUMMARY
-          find app/build/outputs -name "*.apk" -type f 2>/dev/null | tee -a $GITHUB_STEP_SUMMARY \
-            || echo "No APK files found" >> $GITHUB_STEP_SUMMARY
 
       - name: Rename APK
         run: |
