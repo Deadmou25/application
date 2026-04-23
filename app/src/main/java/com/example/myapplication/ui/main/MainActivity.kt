@@ -23,9 +23,22 @@ import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+/**
+ * Главная Activity приложения. Точка входа и «хост» для двух фрагментов:
+ * [ControlFragment] (вкладка «Управление») и [HistoryFragment] (вкладка «История»).
+ *
+ * Обязанности MainActivity:
+ * - Инициализация и жизненный цикл [BluetoothManager] и [MedicineRepository]
+ * - Запрос Bluetooth-разрешений (с учётом модели прав Android 12+)
+ * - Показ диалога выбора Bluetooth-устройства
+ * - Установка соединения в фоновом потоке
+ * - Отображение глобальных сообщений об успехе из [MainViewModel]
+ *
+ * [bluetoothManager] намеренно объявлен public — [ControlFragment] обращается
+ * к нему напрямую для проверки статуса перед отправкой данных.
+ */
 class MainActivity : AppCompatActivity() {
 
-    // Делаем bluetoothManager public, чтобы ControlFragment мог проверить статус
     lateinit var bluetoothManager: BluetoothManager
     private lateinit var repository: MedicineRepository
     private lateinit var viewModel: MainViewModel
@@ -34,7 +47,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var adapter: ViewPagerAdapter
 
-    // Request permissions
+    /**
+     * Launcher для запроса сразу нескольких Bluetooth-разрешений.
+     * При получении всех разрешений инициализирует Bluetooth,
+     * иначе показывает Toast с объяснением.
+     */
     private val requestBluetoothPermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -46,6 +63,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Launcher для системного диалога включения Bluetooth.
+     * Если пользователь включил BT — сразу открывает диалог выбора устройства.
+     */
     private val requestEnableBluetoothLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -60,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Инициализация данных
+        // Инициализация слоя данных
         bluetoothManager = BluetoothManager(this)
         val database = AppDatabase.getDatabase(this)
         repository = MedicineRepository(database.medicineDao(), bluetoothManager)
@@ -68,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         val factory = MainViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[MainViewModel::class.java]
 
-        // Инициализация UI (Tabs)
+        // Инициализация ViewPager2 с TabLayout
         tabLayout = findViewById(R.id.tabLayout)
         viewPager = findViewById(R.id.viewPager)
 
@@ -79,14 +100,15 @@ class MainActivity : AppCompatActivity() {
             tab.text = adapter.getPageTitle(position)
         }.attach()
 
-        // Проверка разрешений
         checkAndRequestPermissions()
-
-        // Глобальные сообщения (успех)
         observeGlobalMessages()
     }
 
-    // Метод, который вызывает ControlFragment для начала подключения
+    /**
+     * Публичный метод для фрагментов: запускает полный флоу подключения —
+     * сначала проверяет, включён ли BT, затем показывает диалог выбора устройства.
+     * Вызывается из [ControlFragment] по нажатию кнопки «Выбрать устройство».
+     */
     fun startBluetoothConnectionFlow() {
         if (bluetoothManager.isBluetoothEnabled()) {
             showDeviceSelectionDialog()
@@ -95,6 +117,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Подписывается на глобальные сообщения об успехе из ViewModel
+     * и отображает их Toast-уведомлениями.
+     */
     private fun observeGlobalMessages() {
         lifecycleScope.launch {
             viewModel.successMessage.collectLatest { message ->
@@ -106,6 +132,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Формирует список необходимых разрешений в зависимости от версии Android
+     * и запрашивает те, которые ещё не выданы.
+     *
+     * API 31+ (Android 12): BLUETOOTH_SCAN + BLUETOOTH_CONNECT
+     * API < 31: BLUETOOTH + BLUETOOTH_ADMIN
+     * Всегда: ACCESS_FINE_LOCATION + ACCESS_COARSE_LOCATION
+     */
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf<String>()
 
@@ -131,6 +165,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Проверяет поддержку и статус Bluetooth.
+     * Если BT выключен — предлагает включить его через системный диалог.
+     */
     private fun initializeBluetooth() {
         if (!bluetoothManager.isBluetoothSupported()) {
             Toast.makeText(this, "Устройство не поддерживает Bluetooth", Toast.LENGTH_LONG).show()
@@ -143,11 +181,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Запускает системный диалог включения Bluetooth */
     private fun requestEnableBluetooth() {
         val enableBluetoothIntent = android.bluetooth.BluetoothAdapter.ACTION_REQUEST_ENABLE
         requestEnableBluetoothLauncher.launch(android.content.Intent(enableBluetoothIntent))
     }
 
+    /**
+     * Показывает AlertDialog со списком сопряжённых Bluetooth-устройств.
+     * При выборе устройства запускает процесс подключения.
+     */
     private fun showDeviceSelectionDialog() {
         val devices = bluetoothManager.getPairedDevices()
         if (devices.isEmpty()) {
@@ -177,6 +220,14 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * Устанавливает соединение с выбранным устройством в фоновом потоке.
+     * BluetoothManager.connect() блокирует поток — нельзя вызывать на Main thread.
+     * После завершения обновляет UI через runOnUiThread.
+     *
+     * TODO: заменить Thread на viewModelScope.launch(Dispatchers.IO) для
+     *       корректной отмены при уничтожении Activity.
+     */
     private fun connectToDevice(device: BluetoothDevice) {
         Toast.makeText(this, "Подключение...", Toast.LENGTH_SHORT).show()
         Thread {
@@ -193,6 +244,7 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
+    /** Возвращает имя устройства с учётом проверки разрешений API 31+ */
     private fun getDeviceName(device: BluetoothDevice): String {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
@@ -206,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Разрывает Bluetooth-соединение при закрытии Activity */
     override fun onDestroy() {
         super.onDestroy()
         bluetoothManager.disconnect()

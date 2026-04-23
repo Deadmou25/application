@@ -32,3 +32,5 @@ google-services.json
 
 # Android Profiling
 *.hprof
+/app/src/main/res/layout/item_medicine.xml
+/app/src/main/res/layout/dialog_edit_medicine.xml
