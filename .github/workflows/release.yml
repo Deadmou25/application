@@ -45,8 +45,9 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/${{ steps.version.outputs.APK_FILE }}
+          APK=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -1)
+          echo "Found APK: $APK"
+          mv "$APK" "app/build/outputs/apk/release/${{ steps.version.outputs.APK_FILE }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
