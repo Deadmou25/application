@@ -13,32 +13,14 @@ android {
 
     // Версия берётся из переменных окружения при сборке в CI (GitHub Actions).
     // При локальной сборке используются значения по умолчанию.
-    val ciVersionName = System.getenv("VERSION_NAME")
-    val ciVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
-
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 24
         targetSdk = 36
-        versionCode = ciVersionCode ?: 1
-        versionName = ciVersionName ?: "1.0"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    // Конфигурация подписи для release-сборки.
-    // Данные читаются из переменных окружения, которые GitHub Actions
-    // передаёт из секретов репозитория (Settings → Secrets → Actions).
-    signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("KEYSTORE_FILE")
-            if (!keystorePath.isNullOrEmpty()) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
     }
 
     buildTypes {
@@ -48,14 +30,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Используем release-подпись если keystore задан, иначе — debug-ключ.
-            // Debug-ключ позволяет установить APK на телефон, но не годится для Google Play.
-            val hasKeystore = !System.getenv("KEYSTORE_FILE").isNullOrEmpty()
-            signingConfig = if (hasKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Используем debug-ключ — APK устанавливается на любой телефон.
+            // Для публикации в Google Play замените на release-ключ через signingConfigs.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
