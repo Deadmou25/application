@@ -26,21 +26,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Конфигурация подписи для release-сборки.
-    // Данные читаются из переменных окружения, которые GitHub Actions
-    // передаёт из секретов репозитория (Settings → Secrets → Actions).
-    signingConfigs {
-        create("release") {
-            val keystorePath = System.getenv("KEYSTORE_FILE")
-            if (!keystorePath.isNullOrEmpty()) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -48,14 +33,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Используем release-подпись если keystore задан, иначе — debug-ключ.
-            // Debug-ключ позволяет установить APK на телефон, но не годится для Google Play.
-            val hasKeystore = !System.getenv("KEYSTORE_FILE").isNullOrEmpty()
-            signingConfig = if (hasKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
