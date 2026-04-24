@@ -37,8 +37,7 @@ class HistoryFragment : Fragment() {
     private lateinit var viewModel: MainViewModel
     private lateinit var historyRecyclerView: RecyclerView
     private lateinit var medicineAdapter: MedicineAdapter
-    // TODO: исправить — deleteAllButton инициализируется null и обработчик не привязывается
-    private var deleteAllButton: Button? = null
+    private lateinit var deleteAllButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -49,10 +48,10 @@ class HistoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ViewModel разделяется с MainActivity
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
 
         historyRecyclerView = view.findViewById(R.id.historyRecyclerView)
+        deleteAllButton = view.findViewById(R.id.deleteAllButton)
 
         medicineAdapter = MedicineAdapter(
             onEditClick = { medicine -> showEditDialog(medicine) },
@@ -62,9 +61,7 @@ class HistoryFragment : Fragment() {
         historyRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         historyRecyclerView.adapter = medicineAdapter
 
-        // BUG: deleteAllButton здесь всегда null — обработчик клика не регистрируется.
-        // Нужно: deleteAllButton = view.findViewById(R.id.deleteAllButton)
-        deleteAllButton?.setOnClickListener {
+        deleteAllButton.setOnClickListener {
             showDeleteAllConfirmationDialog()
         }
 
