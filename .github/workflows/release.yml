@@ -17,6 +17,7 @@ jobs:
  # Временное решение для Node.js 24
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       
     steps:
       # 1. Клонируем репозиторий
@@ -53,9 +54,9 @@ jobs:
       #    Если секрет KEYSTORE_BASE64 не задан — шаг пропускается,
       #    APK будет подписан debug-ключом
       - name: Декодирование keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
+          echo "$KEYSTORE_BASE64" | base64 --decode > ${{ github.workspace }}/keystore.jks
           echo "Keystore декодирован: $(ls -lh keystore.jks)"
 
       # 6. Собираем Release APK
@@ -65,7 +66,7 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.VERSION_NAME }}
           VERSION_CODE: ${{ steps.version.outputs.VERSION_CODE }}
           # Данные для подписи (из секретов репозитория)
-          KEYSTORE_FILE: ${{ secrets.KEYSTORE_BASE64 != '' && format('{0}/keystore.jks', github.workspace) || '' }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_BASE64 != '' && format('{0}/keystore.jks', github.workspace) || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
