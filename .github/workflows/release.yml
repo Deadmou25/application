@@ -14,7 +14,10 @@ jobs:
   build-and-release:
     name: Сборка APK и создание релиза
     runs-on: ubuntu-latest
-
+ # Временное решение для Node.js 24
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      
     steps:
       # 1. Клонируем репозиторий
       - name: Checkout кода
