@@ -102,6 +102,10 @@ class MedicineRepository(
         return medicineDao.getById(id)
     }
 
+    suspend fun insertMedicine(medicine: Medicine) {
+        medicineDao.insert(medicine)
+    }
+
     /**
      * Проверяет, активно ли Bluetooth-соединение прямо сейчас.
      */

@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
 import com.example.myapplication.data.model.Medicine
+import com.example.myapplication.ui.add.AddMedicineActivity
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -27,18 +30,14 @@ import kotlinx.coroutines.launch
  * - Удаление одной записи с диалогом подтверждения
  * - Удаление всей истории с диалогом подтверждения
  *
- * Известная проблема: кнопка «Удалить все» (deleteAllButton) объявлена как nullable
- * и её обработчик привязывается до вызова view.findViewById — нажатие не работает.
- * Исправление: перенести инициализацию и setOnClickListener в onViewCreated после
- * вызова view.findViewById(R.id.deleteAllButton).
  */
 class HistoryFragment : Fragment() {
 
     private lateinit var viewModel: MainViewModel
     private lateinit var historyRecyclerView: RecyclerView
     private lateinit var medicineAdapter: MedicineAdapter
-    // TODO: исправить — deleteAllButton инициализируется null и обработчик не привязывается
     private var deleteAllButton: Button? = null
+    private var addMedicineFab: FloatingActionButton? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -62,10 +61,14 @@ class HistoryFragment : Fragment() {
         historyRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         historyRecyclerView.adapter = medicineAdapter
 
-        // BUG: deleteAllButton здесь всегда null — обработчик клика не регистрируется.
-        // Нужно: deleteAllButton = view.findViewById(R.id.deleteAllButton)
+        deleteAllButton = view.findViewById(R.id.deleteAllButton)
         deleteAllButton?.setOnClickListener {
             showDeleteAllConfirmationDialog()
+        }
+
+        addMedicineFab = view.findViewById(R.id.addMedicineFab)
+        addMedicineFab?.setOnClickListener {
+            startActivity(Intent(requireContext(), AddMedicineActivity::class.java))
         }
 
         observeViewModel()
